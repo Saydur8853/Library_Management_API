@@ -1,6 +1,6 @@
 # Library Management API
 
-A comprehensive Library Management System API built with Django REST Framework, featuring user authentication, book management, borrowing system, and penalty tracking with complete **Swagger** documentation.
+A comprehensive Library Management System API built with Django REST Framework, featuring user authentication, book management, borrowing system, and penalty tracking.
 
 ## Features
 
@@ -12,7 +12,6 @@ A comprehensive Library Management System API built with Django REST Framework, 
 - **Penalty System**: Automatic penalty calculation (1 point per day late)
 - **Admin Controls**: Admin-only content management and user oversight
 - **Advanced Filtering**: Search and filter across all entities
-- **API Documentation**: Complete **Swagger /OpenAPI 3.0** documentation
 - **Transaction Safety**: Atomic database operations for data consistency
 - **CORS Support**: Cross-origin resource sharing enabled
 
@@ -21,7 +20,6 @@ A comprehensive Library Management System API built with Django REST Framework, 
 - **Backend**: Django 5.2, Django REST Framework
 - **Database**: SQLite (development)
 - **Authentication**: JWT tokens via `djangorestframework-simplejwt`
-- **Documentation**: drf-spectacular (**Swagger/OpenAPI 3.0**)
 - **Filtering**: django-filter with search capabilities
 - **CORS**: django-cors-headers
 - **Testing**: Django TestCase with comprehensive coverage
@@ -89,12 +87,10 @@ python manage.py runserver
 
 - **API Root**: http://localhost:8000/api/
 - **Admin Panel**: http://localhost:8000/admin/
-- **Swagger Documentation**: http://localhost:8000/api/docs/
-- **ReDoc Documentation**: http://localhost:8000/api/redoc/
 
 ## API Endpoints Overview
 
-The API is organized into logical sections with proper Swagger tags for better documentation:
+The API is organized into logical sections:
 
 ### Authentication Endpoints
 
@@ -212,7 +208,71 @@ The API is organized into logical sections with proper Swagger tags for better d
 | ------ | ------------------------------ | ------------------ | ------------- |
 | GET    | `/api/users/{id}/penalties/` | Get user penalties | Admin or self |
 
-## Database Schema
+## Database Schema & ER Diagram
+
+### Entity-Relationship Diagram
+
+```
+┌─────────────────────────┐
+│         User            │
+├─────────────────────────┤
+│ id (PK)                 │
+│ username (UNIQUE)       │
+│ password                │
+│ email                   │
+│ first_name              │
+│ last_name               │
+│ is_staff                │
+│ is_active               │
+│ is_superuser            │
+│ last_login              │
+│ date_joined             │
+│ penalty_points          │
+└─────────────────────────┘
+              │
+              │ 1:N
+              │
+              ▼
+┌─────────────────────────┐
+│        Borrow           │
+├─────────────────────────┤
+│ id (PK)                 │
+│ user_id (FK)            │
+│ book_id (FK)            │
+│ borrow_date             │
+│ due_date                │
+│ return_date             │
+│ created_at              │
+└─────────────────────────┘
+              │
+              │ N:1
+              │
+              ▼
+┌─────────────────────────┐         ┌─────────────────────────┐
+│         Book            │         │        Author           │
+├─────────────────────────┤         ├─────────────────────────┤
+│ id (PK)                 │         │ id (PK)                 │
+│ title                   │  N:1    │ name                    │
+│ description             │ ◄─────── │ bio                     │
+│ author_id (FK)          │         │ created_at              │
+│ category_id (FK)        │         └─────────────────────────┘
+│ total_copies            │
+│ available_copies        │
+│ created_at              │         ┌─────────────────────────┐
+│ updated_at              │         │       Category          │
+└─────────────────────────┘         ├─────────────────────────┤
+              │                     │ id (PK)                 │
+              │ N:1                 │ name                    │
+              └───────────────────► │ created_at              │
+                                    └─────────────────────────┘
+```
+
+### Relationships
+
+- **Author → Book** (One-to-Many): Each author can write multiple books
+- **Category → Book** (One-to-Many): Each category can contain multiple books  
+- **User → Borrow** (One-to-Many): Each user can borrow multiple books
+- **Book → Borrow** (One-to-Many): Each book can have multiple borrow records
 
 ### User Model (Custom)
 
@@ -226,23 +286,21 @@ class User(AbstractUser):
 
 ```python
 class Author(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=200)
     bio = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
 class Category(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
 class Book(models.Model):
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    total_copies = models.PositiveIntegerField()
-    available_copies = models.PositiveIntegerField()
+    total_copies = models.PositiveIntegerField(default=1)
+    available_copies = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -253,7 +311,6 @@ class Borrow(models.Model):
     due_date = models.DateTimeField()  # Auto-calculated: borrow_date + 14 days
     return_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 ```
 
 ## Project Structure
@@ -315,19 +372,150 @@ Access Django admin at `/admin/` for:
 
 ## Business Logic & Rules
 
-### 📚 Borrowing System Rules
+### 📚 Borrowing/Return Logic
 
-- **Maximum Loans**: 3 books per user simultaneously
-- **Loan Duration**: 14 days from borrow date
-- **Inventory Check**: Only available copies can be borrowed
-- **Atomic Operations**: All borrowing/returning uses database transactions
+#### How Borrowing Works:
 
-### ⚖️ Penalty System
+1. **Pre-Borrowing Validations**:
+   - User must be authenticated
+   - User must have fewer than 3 active (unreturned) borrows
+   - Book must have available copies (`available_copies > 0`)
+   - Book must exist in the system
 
-- **Late Fee**: 1 penalty point per day overdue
-- **Automatic Calculation**: Applied during book return process
-- **Persistent Tracking**: Penalty points stored in user profile
-- **Admin Visibility**: Admins can monitor user penalties
+2. **Atomic Borrowing Process**:
+   ```python
+   # Database transaction ensures data consistency
+   with transaction.atomic():
+       # Decrease available copies
+       book.available_copies -= 1
+       book.save()
+       
+       # Create borrow record
+       borrow = Borrow.objects.create(
+           user=user,
+           book=book,
+           due_date=timezone.now() + timedelta(days=14)
+       )
+   ```
+
+3. **Automatic Due Date Calculation**:
+   - Due date is automatically set to **14 days** from borrow date
+   - No manual due date input required
+   - Due date is calculated using Django's timezone-aware datetime
+
+#### How Returning Works:
+
+1. **Return Validations**:
+   - User must own the borrow record
+   - Book must not already be returned (`return_date` must be null)
+   - Borrow record must exist
+
+2. **Atomic Return Process**:
+   ```python
+   with transaction.atomic():
+       # Set return date
+       borrow.return_date = timezone.now()
+       
+       # Calculate penalties if late
+       penalty_points = borrow.calculate_penalty_on_return()
+       if penalty_points > 0:
+           user.penalty_points += penalty_points
+           user.save()
+       
+       # Restore book inventory
+       book.available_copies += 1
+       book.save()
+       
+       borrow.save()
+   ```
+
+3. **Return Response**:
+   ```json
+   {
+     "message": "Book returned successfully",
+     "penalty_applied": 3,
+     "total_penalty_points": 8,
+     "was_overdue": true,
+     "days_late": 3
+   }
+   ```
+
+### ⚖️ Penalty Point System
+
+#### How Penalties Are Calculated:
+
+1. **Penalty Formula**:
+   ```python
+   def calculate_penalty_on_return(self):
+       if not self.return_date:
+           return 0
+       
+       if self.return_date > self.due_date:
+           days_late = (self.return_date - self.due_date).days
+           return days_late  # 1 point per day late
+       return 0
+   ```
+
+2. **When Penalties Apply**:
+   - Only applied when a book is **actually returned**
+   - Based on the difference between `return_date` and `due_date`
+   - **1 penalty point = 1 day late**
+   - Partial days count as full days (e.g., 1.5 days late = 2 penalty points)
+
+3. **Penalty Examples**:
+   - Due: Jan 15, Returned: Jan 15 → **0 points** (on time)
+   - Due: Jan 15, Returned: Jan 18 → **3 points** (3 days late)
+   - Due: Jan 15, Returned: Jan 25 → **10 points** (10 days late)
+
+4. **Real-time Overdue Detection**:
+   ```python
+   @property
+   def is_overdue(self):
+       if self.return_date:  # Already returned
+           return False
+       return timezone.now() > self.due_date
+   
+   @property
+   def days_overdue(self):
+       if not self.is_overdue:
+           return 0
+       return (timezone.now() - self.due_date).days
+   ```
+
+#### Penalty Point Management:
+
+- **Accumulation**: Penalty points accumulate in the user's profile
+- **Persistence**: Points remain even after book return
+- **Admin Visibility**: Admins can view all user penalty points
+- **No Automatic Reset**: Points persist unless manually adjusted by admin
+- **Future Enhancement**: Could implement point expiration or redemption system
+
+### ⚠️ Assumptions & Limitations
+
+1. **Borrowing Assumptions**:
+   - Users are trusted to return books (no reservation system)
+   - No renewals system implemented (must return and re-borrow)
+   - No waiting list or book reservation functionality
+   - Book inventory is manually managed by administrators
+
+2. **Penalty Limitations**:
+   - No automatic blocking based on penalty points
+   - No automatic notification system for overdue books
+   - Penalties are only calculated upon return, not in real-time
+   - No fine payment or point reduction system
+
+3. **Technical Limitations**:
+   - Uses SQLite for development (consider PostgreSQL for production)
+   - No background tasks for sending reminders
+   - No caching implemented for high-traffic scenarios
+   - Book metadata is minimal (no ISBN, publisher info, etc.)
+
+4. **Future Enhancements**:
+   - Book reservation system
+   - Automated email reminders for due dates
+   - Barcode/QR code scanning for physical libraries
+   - Integration with payment systems for penalty clearing
+   - User-facing dashboard with borrowing history and recommendations
 
 ### 🔐 Permission Matrix
 
@@ -339,35 +527,6 @@ Access Django admin at `/admin/` for:
 | User Penalties | ❌     | Own only      | All users |
 | Admin Panel    | ❌     | ❌            | ✅        |
 
-## API Documentation
-
-### Interactive Documentation
-
-The API includes comprehensive interactive documentation:
-
-- **🔗 Swagger UI**: http://localhost:8000/api/docs/
-
-  - Interactive API testing
-  - Request/response schemas
-  - Authentication integration
-  - Try-it-out functionality
-- **📖 ReDoc**: http://localhost:8000/api/redoc/
-
-  - Clean, readable documentation
-  - Detailed model schemas
-  - Code examples
-- **⚙️ OpenAPI Schema**: http://localhost:8000/api/schema/
-
-  - Raw OpenAPI 3.0 specification
-  - For integration tools
-
-### Documentation Features
-
-- ✅ **Organized by Tags**: Authentication, Books, Authors, Categories, Borrowing, User Management
-- ✅ **Complete Schemas**: All request/response models documented
-- ✅ **Permission Info**: Clear auth requirements for each endpoint
-- ✅ **Error Responses**: Detailed error code documentation
-- ✅ **Interactive Testing**: Built-in API client
 
 ## Usage Examples
 
@@ -495,18 +654,6 @@ export DATABASE_URL="postgresql://user:pass@localhost/dbname"
 export ALLOWED_HOSTS="yourdomain.com,www.yourdomain.com"
 ```
 
-### Docker Deployment
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-RUN python manage.py collectstatic --noinput
-EXPOSE 8000
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-```
 
 ## Contributing
 
@@ -529,5 +676,5 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 
 ## Support
 
-- 📖 **Documentation**: Check `/api/docs/` for API reference
-- 🔍 **API Testing**: Use Swagger UI for interactive testing
+- 📖 **Admin Panel**: Use `/admin/` for database management
+- 🔍 **API Testing**: Use curl or Postman for API testing
