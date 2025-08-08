@@ -1,0 +1,931 @@
+openapi: 3.0.3
+info:
+  title: Library Management API
+  version: 1.0.0
+  description: "A comprehensive Library Management System API built with Django REST\
+    \ Framework.\n    \nFeatures:\n- User authentication and registration\n- Book,\
+    \ Author, and Category management\n- Book borrowing and returning system\n- Penalty\
+    \ system for late returns\n- JWT-based authentication"
+paths:
+  /api/:
+    get:
+      operationId: root_retrieve
+      description: |-
+        Library Management API Root
+
+        Welcome to the Library Management API. Below are the available endpoints:
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/authors/:
+    get:
+      operationId: authors_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - authors
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAuthorList'
+          description: ''
+    post:
+      operationId: authors_create
+      tags:
+      - authors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+          description: ''
+  /api/authors/{id}/:
+    get:
+      operationId: authors_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - authors
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+          description: ''
+    put:
+      operationId: authors_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - authors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AuthorRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+          description: ''
+    patch:
+      operationId: authors_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - authors
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAuthorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAuthorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAuthorRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Author'
+          description: ''
+    delete:
+      operationId: authors_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - authors
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/books/:
+    get:
+      operationId: books_list
+      parameters:
+      - in: query
+        name: author
+        schema:
+          type: integer
+      - in: query
+        name: category
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - books
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBookList'
+          description: ''
+    post:
+      operationId: books_create
+      tags:
+      - books
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+          description: ''
+  /api/books/{id}/:
+    get:
+      operationId: books_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - books
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+          description: ''
+    put:
+      operationId: books_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - books
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+          description: ''
+    patch:
+      operationId: books_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - books
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBookRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBookRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBookRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+          description: ''
+    delete:
+      operationId: books_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - books
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/borrow/:
+    post:
+      operationId: borrow_create
+      tags:
+      - borrow
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/categories/:
+    get:
+      operationId: categories_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - categories
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedCategoryList'
+          description: ''
+    post:
+      operationId: categories_create
+      tags:
+      - categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+  /api/categories/{id}/:
+    get:
+      operationId: categories_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - categories
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    put:
+      operationId: categories_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    patch:
+      operationId: categories_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - categories
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCategoryRequest'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+          description: ''
+    delete:
+      operationId: categories_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - categories
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '204':
+          description: No response body
+  /api/login/:
+    post:
+      operationId: login_create
+      tags:
+      - login
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/my-borrows/:
+    get:
+      operationId: my_borrows_retrieve
+      tags:
+      - my-borrows
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/register/:
+    post:
+      operationId: register_create
+      tags:
+      - register
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/return/:
+    post:
+      operationId: return_create
+      tags:
+      - return
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          description: No response body
+  /api/users/{id}/penalties/:
+    get:
+      operationId: users_penalties_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - type: http
+        scheme: bearer
+        bearerFormat: JWT
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        bio:
+          type: string
+        books_count:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - books_count
+      - created_at
+      - id
+      - name
+    AuthorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        bio:
+          type: string
+      required:
+      - name
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 300
+        description:
+          type: string
+        author:
+          type: integer
+        author_name:
+          type: string
+          readOnly: true
+        category:
+          type: integer
+        category_name:
+          type: string
+          readOnly: true
+        total_copies:
+          type: integer
+        available_copies:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author
+      - author_name
+      - category
+      - category_name
+      - created_at
+      - id
+      - title
+      - updated_at
+    BookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: string
+        author:
+          type: integer
+        category:
+          type: integer
+        total_copies:
+          type: integer
+        available_copies:
+          type: integer
+      required:
+      - author
+      - category
+      - title
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        books_count:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - books_count
+      - created_at
+      - id
+      - name
+    CategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+      required:
+      - name
+    PaginatedAuthorList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Author'
+    PaginatedBookList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+    PaginatedCategoryList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    PatchedAuthorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        bio:
+          type: string
+    PatchedBookRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 300
+        description:
+          type: string
+        author:
+          type: integer
+        category:
+          type: integer
+        total_copies:
+          type: integer
+        available_copies:
+          type: integer
+    PatchedCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          title: Email address
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        penalty_points:
+          type: integer
+          readOnly: true
+        is_staff:
+          type: boolean
+          readOnly: true
+          title: Staff status
+          description: Designates whether the user can log into this admin site.
+      required:
+      - id
+      - is_staff
+      - penalty_points
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
